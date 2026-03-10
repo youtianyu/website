@@ -185,7 +185,7 @@ def render_netdisk():
     st.write(f"当前路径: `/{st.session_state.current_path}`")
     
     if len(path_parts) > 1:
-        if st.button("⬅️ 返回"):
+        if st.button("⬅️ 返回", key="nav_back"):
             st.session_state.current_path = "/".join(path_parts[:-1])
             st.rerun()
 
@@ -222,7 +222,7 @@ def render_netdisk():
                 st.markdown("---")
                 c_act1, c_act2, c_act3, c_act4 = st.columns(4)
                 with c_act1:
-                    if st.button("🗑️ 删除所选"):
+                    if st.button("🗑️ 删除所选", key="search_del"):
                         if selected_search_items:
                             count = 0
                             for item in selected_search_items:
@@ -231,17 +231,17 @@ def render_netdisk():
                             st.success(f"已删除 {count} 个项目。")
                             st.rerun()
                 with c_act2:
-                    if st.button("📋 复制所选"):
+                    if st.button("📋 复制所选", key="search_copy"):
                         if selected_search_items:
                             st.session_state.clipboard = {"action": "copy", "items": selected_search_items, "source": "", "is_full_path": True}
                             st.info(f"已复制 {len(selected_search_items)} 个项目。")
                 with c_act3:
-                    if st.button("✂️ 移动所选"):
+                    if st.button("✂️ 移动所选", key="search_move"):
                         if selected_search_items:
                             st.session_state.clipboard = {"action": "move", "items": selected_search_items, "source": "", "is_full_path": True}
                             st.info(f"已剪切 {len(selected_search_items)} 个项目。")
                 with c_act4:
-                    if st.button("📦 打包下载所选"):
+                    if st.button("📦 打包下载所选", key="search_zip"):
                         if selected_search_items:
                             zip_path = file_manager.download_selected_zip("", selected_search_items)
                             if zip_path:
@@ -257,7 +257,7 @@ def render_netdisk():
         with st.expander("上传文件", expanded=True):
             uploaded_files = st.file_uploader("选择文件", accept_multiple_files=True)
             if uploaded_files:
-                if st.button("上传"):
+                if st.button("上传", key="upload_files"):
                     with st.spinner("正在上传文件..."):
                         success, msg = file_manager.handle_file_upload(st.session_state.current_path, uploaded_files)
                     if success:
@@ -269,7 +269,7 @@ def render_netdisk():
         
         with st.expander("新建文件夹", expanded=True):
             new_folder = st.text_input("文件夹名称")
-            if st.button("创建文件夹"):
+            if st.button("创建文件夹", key="create_folder"):
                 if new_folder:
                     success, msg = file_manager.create_folder(st.session_state.current_path, new_folder)
                     if success:
@@ -285,7 +285,7 @@ def render_netdisk():
         with h1:
             st.markdown("#### 文件列表")
         with h2:
-            if st.button("📦 打包下载当前文件夹"):
+            if st.button("📦 打包下载当前文件夹", key="download_folder_zip"):
                 folder_name = os.path.basename(st.session_state.current_path)
                 with st.spinner("正在压缩文件..."):
                     zip_path = file_manager.download_folder_zip(os.path.dirname(st.session_state.current_path), folder_name)
@@ -347,22 +347,22 @@ def render_netdisk():
         st.markdown("---")
         c_act1, c_act2, c_act3, c_act4, c_act5 = st.columns(5)
         with c_act1:
-            if st.button("🗑️ 删除所选"):
+            if st.button("🗑️ 删除所选", key="file_del"):
                 if selected_items:
                     count = file_manager.delete_items(st.session_state.current_path, selected_items)
                     time.sleep(1)
                     st.rerun()
         with c_act2:
-            if st.button("📋 复制所选"):
+            if st.button("📋 复制所选", key="file_copy"):
                 if selected_items:
                     st.session_state.clipboard = {"action": "copy", "items": selected_items, "source": st.session_state.current_path, "is_full_path": False}
         with c_act3:
-            if st.button("✂️ 移动所选"):
+            if st.button("✂️ 移动所选", key="file_move"):
                 if selected_items:
                     st.session_state.clipboard = {"action": "move", "items": selected_items, "source": st.session_state.current_path, "is_full_path": False}
         with c_act4:
             if "clipboard" in st.session_state:
-                if st.button("📥 粘贴"):
+                if st.button("📥 粘贴", key="file_paste"):
                     clipboard = st.session_state.clipboard
                     is_full_path = clipboard.get("is_full_path", False)
                     count, errors = file_manager.paste_items(
@@ -381,9 +381,9 @@ def render_netdisk():
                         for err in errors:
                             st.error(err)
             else:
-                st.button("📥 粘贴", disabled=True)
+                st.button("📥 粘贴", disabled=True, key="file_paste_disabled")
         with c_act5:
-            if st.button("📦 打包下载所选"):
+            if st.button("📦 打包下载所选", key="file_zip"):
                 if selected_items:
                     zip_path = file_manager.download_selected_zip(st.session_state.current_path, selected_items)
                     if zip_path:
@@ -409,7 +409,7 @@ def render_shipping():
         retention = st.slider("保留时间 (天)", 1, 30, 7)
         files = st.file_uploader("上传文件", accept_multiple_files=True, key="shipping_upload")
         
-        if st.button("📦 创建包裹"):
+        if st.button("📦 创建包裹", key="create_shipping"):
             if not message and not files:
                 st.error("请提供留言或文件。")
             else:
@@ -420,7 +420,7 @@ def render_shipping():
     with tab2:
         st.subheader("接收包裹")
         code = st.text_input("输入取件码")
-        if st.button("🔍 查找包裹"):
+        if st.button("🔍 查找包裹", key="find_shipping"):
             if code:
                 data, error = shipping.retrieve_shipping(code)
                 if error:
@@ -658,7 +658,7 @@ def render_group_chat():
             chat_system.mark_as_read(auth.get_current_user(), gid)
         
         # Back Button
-        if st.button("⬅️ 返回群组列表"):
+        if st.button("⬅️ 返回群组列表", key="grp_back"):
             del st.session_state.current_group_id
             st.rerun()
 
@@ -674,7 +674,7 @@ def render_group_chat():
                 
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("更新设置"):
+                    if st.button("更新设置", key="grp_update_settings"):
                         success, msg = chat_system.update_group_settings(gid, new_expiry, new_retention, new_owner if new_owner else None)
                         if success:
                             st.success(msg)
@@ -683,7 +683,7 @@ def render_group_chat():
                         else:
                             st.error(msg)
                 with c2:
-                    if st.button("❌ 销毁群组", type="primary"):
+                    if st.button("❌ 销毁群组", type="primary", key="grp_delete"):
                         chat_system.delete_group_chat(gid)
                         del st.session_state.current_group_id
                         st.success("群组已销毁。")
@@ -716,7 +716,7 @@ def render_group_chat():
 
         if action == "加入群组":
             code = st.text_input("输入群组代码")
-            if st.button("加入"):
+            if st.button("加入", key="grp_join"):
                 if auth.is_logged_in() and chat_system.check_user_in_group_by_code(auth.get_current_user(), code):
                     st.warning("您已加入过使用该代码的群组。")
                 else:
