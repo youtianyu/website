@@ -237,7 +237,6 @@ def render_netdisk():
                                     # delete_item("", item) -> join(USER_FILES_DIR, "", item) -> USER_FILES_DIR/item. Correct.
                                     if file_manager.delete_item("", item):
                                         count += 1
-                                st.success(f"已删除 {count} 个项目。")
                                 st.rerun()
                     with c_act2:
                         if st.form_submit_button("📋 复制所选"):
@@ -263,7 +262,6 @@ def render_netdisk():
                                         st.download_button("⬇️ 下载 Zip", f, file_name="search_results.zip", mime="application/zip")
 
     with nd_tab2:
-        st.subheader("动作")
         with st.expander("上传文件", expanded=True):
             uploaded_files = st.file_uploader("选择文件", accept_multiple_files=True)
             if uploaded_files:
@@ -360,7 +358,6 @@ def render_netdisk():
             if st.button("🗑️ 删除所选"):
                 if selected_items:
                     count = file_manager.delete_items(st.session_state.current_path, selected_items)
-                    st.success(f"已删除 {count} 个项目。")
                     time.sleep(1)
                     st.rerun()
         with c_act2:
@@ -383,7 +380,6 @@ def render_netdisk():
                     )
                     if count > 0:
                         action_name = "移动" if clipboard["action"] == "move" else "复制"
-                        st.success(f"已{action_name} {count} 个项目。")
                         del st.session_state.clipboard
                         time.sleep(1)
                         st.rerun()
@@ -424,7 +420,7 @@ def render_shipping():
                 st.error("请提供留言或文件。")
             else:
                 code = shipping.create_shipping(message, retention, files)
-                st.success(f"包裹已创建！您的取件码: **{code}**")
+                st.info(f"包裹已创建！您的取件码: **{code}**")
                 st.info(f"此取件码将在 {retention} 天后过期。")
     
     with tab2:
