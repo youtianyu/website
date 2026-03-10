@@ -250,12 +250,10 @@ def render_netdisk():
                                 # paste_items joins source + item.
                                 # If source="", item="folder/file.txt", path = root/folder/file.txt. Correct.
                                 st.session_state.clipboard = {"action": "copy", "items": selected_search_items, "source": ""}
-                                st.info(f"已复制 {len(selected_search_items)} 个项目。")
                     with c_act3:
                         if st.form_submit_button("✂️ 移动所选"):
                             if selected_search_items:
                                 st.session_state.clipboard = {"action": "move", "items": selected_search_items, "source": ""}
-                                st.info(f"已剪切 {len(selected_search_items)} 个项目。")
                     with c_act4:
                         if st.form_submit_button("📦 打包下载所选"):
                             if selected_search_items:
@@ -357,7 +355,7 @@ def render_netdisk():
                         st.download_button("⬇️", file_data, file_name=f, key=f"down_{f}")
 
         st.markdown("---")
-        c_act1, c_act2, c_act3, c_act4 = st.columns(4)
+        c_act1, c_act2, c_act3, c_act4, c_act5 = st.columns(5)
         with c_act1:
             if st.button("🗑️ 删除所选"):
                 if selected_items:
@@ -369,13 +367,32 @@ def render_netdisk():
             if st.button("📋 复制所选"):
                 if selected_items:
                     st.session_state.clipboard = {"action": "copy", "items": selected_items, "source": st.session_state.current_path}
-                    st.info(f"已复制 {len(selected_items)} 个项目到剪贴板。")
         with c_act3:
             if st.button("✂️ 移动所选"):
                 if selected_items:
                     st.session_state.clipboard = {"action": "move", "items": selected_items, "source": st.session_state.current_path}
-                    st.info(f"已剪切 {len(selected_items)} 个项目。")
         with c_act4:
+            if "clipboard" in st.session_state:
+                if st.button("📥 粘贴"):
+                    clipboard = st.session_state.clipboard
+                    count, errors = file_manager.paste_items(
+                        clipboard["source"],
+                        clipboard["items"],
+                        st.session_state.current_path,
+                        clipboard["action"]
+                    )
+                    if count > 0:
+                        action_name = "移动" if clipboard["action"] == "move" else "复制"
+                        st.success(f"已{action_name} {count} 个项目。")
+                        del st.session_state.clipboard
+                        time.sleep(1)
+                        st.rerun()
+                    if errors:
+                        for err in errors:
+                            st.error(err)
+            else:
+                st.button("📥 粘贴", disabled=True)
+        with c_act5:
             if st.button("📦 打包下载所选"):
                 if selected_items:
                     zip_path = file_manager.download_selected_zip(st.session_state.current_path, selected_items)
@@ -604,8 +621,6 @@ def render_public_chat():
     # Mark read
     if auth.is_logged_in():
         chat_system.mark_as_read(auth.get_current_user(), chat_system.PUBLIC_CHAT_ID)
-        
-    st.info("这是一个公共空间。任何人都可以看到这里的消息。")
     
     # Message Input
     with st.form("public_chat_form", clear_on_submit=True):
@@ -712,16 +727,19 @@ def render_group_chat():
         if action == "加入群组":
             code = st.text_input("输入群组代码")
             if st.button("加入"):
-                groups = chat_system.find_group_by_code(code)
-                if groups:
-                    group = groups[0]
-                    st.session_state.current_group_id = group['id']
-                    if auth.is_logged_in():
-                        chat_system.add_joined_group(auth.get_current_user(), group['id'])
-                    st.success(f"已加入群组: {group['name']}")
-                    st.rerun()
+                if auth.is_logged_in() and chat_system.check_user_in_group_by_code(auth.get_current_user(), code):
+                    st.warning("您已加入过使用该代码的群组。")
                 else:
-                    st.error("群组未找到。")
+                    groups = chat_system.find_group_by_code(code)
+                    if groups:
+                        group = groups[0]
+                        st.session_state.current_group_id = group['id']
+                        if auth.is_logged_in():
+                            chat_system.add_joined_group(auth.get_current_user(), group['id'])
+                        st.success(f"已加入群组: {group['name']}")
+                        st.rerun()
+                    else:
+                        st.error("群组未找到。")
                     
         elif action == "创建群组":
             if not auth.is_logged_in():

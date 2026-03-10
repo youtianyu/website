@@ -250,6 +250,10 @@ def add_dm_partner(user, partner):
 
 def create_group_chat(name, code, expiry_days, retention_days, owner):
     """Create a new group chat."""
+    # Check if code already exists
+    if check_group_code_exists(code):
+        return False, "该群组代码已被使用，请使用其他代码。"
+    
     # Check limits
     config = admin.load_system_config()
     user_groups = auth.get_user_created_groups(owner)
@@ -340,6 +344,35 @@ def clean_expired_groups():
             
         if get_timestamp() > config.get("expires_at", 0):
             delete_group_chat(group_id)
+
+def check_group_code_exists(code):
+    """Check if a group with the given code already exists."""
+    if not os.path.exists(GROUP_CHATS_DIR):
+        return False
+    
+    for group_id in os.listdir(GROUP_CHATS_DIR):
+        config = get_group_config(group_id)
+        if config and config.get("code") == code:
+            return True
+    return False
+
+def check_user_in_group_by_code(username, code):
+    """Check if user is already in a group with the given code."""
+    if not username:
+        return False
+    
+    users = auth.get_users()
+    if username not in users:
+        return False
+    
+    user_data = users.get(username, {})
+    joined_groups = user_data.get("joined_groups", [])
+    
+    for group_id in joined_groups:
+        config = get_group_config(group_id)
+        if config and config.get("code") == code:
+            return True
+    return False
 
 def update_group_settings(group_id, expiry_days, retention_days, new_owner=None):
     """Update group settings."""
