@@ -203,63 +203,55 @@ def render_netdisk():
                 st.warning("未找到文件。")
             else:
                 # Search Results with Actions
-                with st.form("search_results_form"):
-                    st.write("##### 搜索结果")
-                    selected_search_items = []
-                    for res in results:
-                        c1, c2, c3 = st.columns([0.05, 0.75, 0.2])
-                        with c1:
-                            if st.checkbox(" ", key=f"chk_search_{res}", label_visibility="collapsed"):
-                                selected_search_items.append(res)
-                        with c2:
-                            st.write(f"📄 {res}")
-                        with c3:
-                            # Jump button
-                            dir_path = os.path.dirname(res)
-                            if st.form_submit_button("📂", key=f"jump_{res}", help=f"跳转到 {dir_path}"):
-                                st.session_state.current_path = dir_path.replace("\\", "/")
-                                st.rerun()
+                st.write("##### 搜索结果")
+                selected_search_items = []
+                for res in results:
+                    c1, c2, c3 = st.columns([0.05, 0.75, 0.2])
+                    with c1:
+                        if st.checkbox(" ", key=f"chk_search_{res}", label_visibility="collapsed"):
+                            selected_search_items.append(res)
+                    with c2:
+                        st.write(f"📄 {res}")
+                    with c3:
+                        # Jump button
+                        dir_path = os.path.dirname(res)
+                        if st.button("📂", key=f"jump_{res}", help=f"跳转到 {dir_path}"):
+                            st.session_state.current_path = dir_path.replace("\\", "/")
+                            st.rerun()
 
-                    st.markdown("---")
-                    c_act1, c_act2, c_act3, c_act4 = st.columns(4)
-                    with c_act1:
-                        if st.form_submit_button("🗑️ 删除所选"):
-                            if selected_search_items:
-                                count = 0
-                                for item in selected_search_items:
-                                    # search returns relative path from user root, but delete_item expects relative to current_path?
-                                    # No, file_manager functions expect relative_path + item_name usually.
-                                    # But search_files returns relative path from USER_FILES_DIR.
-                                    # So we need to handle full path deletion.
-                                    # Let's use a specialized delete for full relative paths.
-                                    # Actually delete_item uses get_absolute_path which joins USER_FILES_DIR + path.
-                                    # So passing the result directly to delete_item with root "" should work?
-                                    # delete_item("", item) -> join(USER_FILES_DIR, "", item) -> USER_FILES_DIR/item. Correct.
-                                    if file_manager.delete_item("", item):
-                                        count += 1
+                st.markdown("---")
+                c_act1, c_act2, c_act3, c_act4 = st.columns(4)
+                with c_act1:
+                    if st.button("🗑️ 删除所选"):
+                        if selected_search_items:
+                            count = 0
+                            for item in selected_search_items:
+                                if file_manager.delete_item("", item):
+                                    count += 1
+                            st.success(f"已删除 {count} 个项目。")
+                            st.rerun()
+                with c_act2:
+                    if st.button("📋 复制所选"):
+                        if selected_search_items:
+                            st.session_state.clipboard = {"action": "copy", "items": selected_search_items, "source": "", "is_full_path": True}
+                            st.info(f"已复制 {len(selected_search_items)} 个项目。")
+                with c_act3:
+                    if st.button("✂️ 移动所选"):
+                        if selected_search_items:
+                            st.session_state.clipboard = {"action": "move", "items": selected_search_items, "source": "", "is_full_path": True}
+                            st.info(f"已剪切 {len(selected_search_items)} 个项目。")
+                with c_act4:
+                    if st.button("📦 打包下载所选"):
+                        if selected_search_items:
+                            zip_path = file_manager.download_selected_zip("", selected_search_items)
+                            if zip_path:
+                                st.session_state.search_zip = zip_path
                                 st.rerun()
-                    with c_act2:
-                        if st.form_submit_button("📋 复制所选"):
-                            if selected_search_items:
-                                # For search results, items are paths relative to root.
-                                # Clipboard expects simple names usually? No, it stores items.
-                                # paste_items expects source path.
-                                # If we have mixed paths, we can't use single source.
-                                # Complex... Let's just say we copy from root with full relative paths?
-                                # paste_items joins source + item.
-                                # If source="", item="folder/file.txt", path = root/folder/file.txt. Correct.
-                                st.session_state.clipboard = {"action": "copy", "items": selected_search_items, "source": ""}
-                    with c_act3:
-                        if st.form_submit_button("✂️ 移动所选"):
-                            if selected_search_items:
-                                st.session_state.clipboard = {"action": "move", "items": selected_search_items, "source": ""}
-                    with c_act4:
-                        if st.form_submit_button("📦 打包下载所选"):
-                            if selected_search_items:
-                                zip_path = file_manager.download_selected_zip("", selected_search_items)
-                                if zip_path:
-                                    with open(zip_path, "rb") as f:
-                                        st.download_button("⬇️ 下载 Zip", f, file_name="search_results.zip", mime="application/zip")
+                
+                if "search_zip" in st.session_state and os.path.exists(st.session_state.search_zip):
+                    with open(st.session_state.search_zip, "rb") as f:
+                        st.download_button("⬇️ 点击下载打包文件", f, file_name="search_results.zip", mime="application/zip")
+                    del st.session_state.search_zip
 
     with nd_tab2:
         with st.expander("上传文件", expanded=True):
@@ -363,20 +355,22 @@ def render_netdisk():
         with c_act2:
             if st.button("📋 复制所选"):
                 if selected_items:
-                    st.session_state.clipboard = {"action": "copy", "items": selected_items, "source": st.session_state.current_path}
+                    st.session_state.clipboard = {"action": "copy", "items": selected_items, "source": st.session_state.current_path, "is_full_path": False}
         with c_act3:
             if st.button("✂️ 移动所选"):
                 if selected_items:
-                    st.session_state.clipboard = {"action": "move", "items": selected_items, "source": st.session_state.current_path}
+                    st.session_state.clipboard = {"action": "move", "items": selected_items, "source": st.session_state.current_path, "is_full_path": False}
         with c_act4:
             if "clipboard" in st.session_state:
                 if st.button("📥 粘贴"):
                     clipboard = st.session_state.clipboard
+                    is_full_path = clipboard.get("is_full_path", False)
                     count, errors = file_manager.paste_items(
                         clipboard["source"],
                         clipboard["items"],
                         st.session_state.current_path,
-                        clipboard["action"]
+                        clipboard["action"],
+                        is_full_path
                     )
                     if count > 0:
                         action_name = "移动" if clipboard["action"] == "move" else "复制"

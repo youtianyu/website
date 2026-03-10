@@ -145,26 +145,44 @@ def copy_items(relative_path, item_names, dest_folder_name):
     clear_files_cache()
     return success_count
 
-def paste_items(source_path, items, dest_path, action):
-    """Paste items from source to destination."""
-    src_abs = get_absolute_path(source_path)
+def paste_items(source_path, items, dest_path, action, items_are_full_paths=False):
+    """Paste items from source to destination.
+    
+    Args:
+        source_path: Source directory relative path
+        items: List of item names or full relative paths
+        dest_path: Destination directory relative path
+        action: 'copy' or 'move'
+        items_are_full_paths: If True, items are full relative paths from USER_FILES_DIR
+    """
     dest_abs = get_absolute_path(dest_path)
     
-    if not src_abs or not dest_abs or not os.path.exists(src_abs) or not os.path.exists(dest_abs):
-        return 0, ["无效的路径。"]
+    if not dest_abs or not os.path.exists(dest_abs):
+        return 0, ["无效的目标路径。"]
         
     success_count = 0
     errors = []
     
     for item in items:
-        s_item = os.path.join(src_abs, item)
-        d_item = os.path.join(dest_abs, item)
+        if items_are_full_paths:
+            # Items are full relative paths from USER_FILES_DIR (e.g., from search results)
+            src_abs = USER_FILES_DIR
+            s_item = os.path.join(src_abs, item)
+        else:
+            # Items are item names, need to combine with source_path
+            src_abs = get_absolute_path(source_path)
+            if not src_abs or not os.path.exists(src_abs):
+                continue
+            s_item = os.path.join(src_abs, item)
+        
+        d_item = os.path.join(dest_abs, os.path.basename(item) if items_are_full_paths else item)
         
         if not os.path.exists(s_item):
+            errors.append(f"{item} 源文件不存在")
             continue
             
         if os.path.exists(d_item):
-            errors.append(f"{item} 已存在于目标位置")
+            errors.append(f"{os.path.basename(item)} 已存在于目标位置")
             continue
             
         try:
